@@ -47,10 +47,6 @@ for (let i = 0; i < particleCount; i++) {
 
 function animate() {
     ctx.clearRect(0, 0, w, h);
-    
-    // Draw background
-    ctx.fillStyle = '#020205';
-    ctx.fillRect(0, 0, w, h);
 
     for (let i = 0; i < particles.length; i++) {
         particles[i].update();

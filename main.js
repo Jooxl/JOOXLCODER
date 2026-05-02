@@ -1,4 +1,4 @@
-require.config({ paths: { 'vs': 'https://cdnjs.cloudflare.com/ajax/libs/monaco-editor/0.36.1/min/vs' }});
+require.config({ paths: { 'vs': 'https://cdnjs.cloudflare.com/ajax/libs/monaco-editor/0.36.1/min/vs' } });
 
 const startBtn = document.getElementById('start-btn');
 const backBtn = document.getElementById('back-btn');
@@ -49,8 +49,8 @@ function saveHistory(arr) {
 function renderHistory() {
     const history = loadHistory();
     historyList.innerHTML = '';
-    
-    if(history.length === 0) {
+
+    if (history.length === 0) {
         historyList.innerHTML = '<p style="color: #666; font-size: 0.8rem; text-align: center;">No saved codes yet.</p>';
         return;
     }
@@ -72,24 +72,24 @@ function renderHistory() {
 
         // Load Code on click
         card.addEventListener('click', (e) => {
-            if(e.target.tagName === 'BUTTON') return; // Ignore if clicking action buttons
-            if(window.editor) {
+            if (e.target.tagName === 'BUTTON') return; // Ignore if clicking action buttons
+            if (window.editor) {
                 currentCodeId = null; // Disable auto-save temporarily
                 window.editor.setValue(item.code);
                 currentCodeId = item.id; // Re-enable auto-save with new ID
                 currentFileName.textContent = item.name;
                 document.body.classList.remove('sidebar-open');
-                if(window.audioManager && window.audioManager.playSwordDraw) window.audioManager.playSwordDraw();
+                if (window.audioManager && window.audioManager.playSwordDraw) window.audioManager.playSwordDraw();
             }
         });
 
         // Delete
         card.querySelector('.btn-delete').addEventListener('click', (e) => {
             e.stopPropagation();
-            if(confirm("Delete this code?")) {
+            if (confirm("Delete this code?")) {
                 let h = loadHistory().filter(x => x.id !== item.id);
                 saveHistory(h);
-                if(currentCodeId === item.id) currentCodeId = null;
+                if (currentCodeId === item.id) currentCodeId = null;
                 renderHistory();
             }
         });
@@ -98,13 +98,13 @@ function renderHistory() {
         card.querySelector('.btn-edit').addEventListener('click', (e) => {
             e.stopPropagation();
             const newName = prompt("Enter new name:", item.name);
-            if(newName && newName.trim() !== '') {
+            if (newName && newName.trim() !== '') {
                 let h = loadHistory();
                 let target = h.find(x => x.id === item.id);
-                if(target) {
+                if (target) {
                     target.name = newName.trim();
                     saveHistory(h);
-                    if(currentCodeId === item.id) currentFileName.textContent = target.name;
+                    if (currentCodeId === item.id) currentFileName.textContent = target.name;
                     renderHistory();
                 }
             }
@@ -118,15 +118,15 @@ function renderHistory() {
 require(['vs/editor/editor.main'], function () {
     monaco.editor.defineTheme('cyber-tech', {
         base: 'vs-dark', inherit: true,
-        rules: [ 
+        rules: [
             { background: '00000000' },
-            { token: 'keyword', foreground: 'ff1a1a' }, 
+            { token: 'keyword', foreground: 'ff1a1a' },
             { token: 'identifier', foreground: 'e0e0e0' },
-            { token: 'string', foreground: 'ff8800' }, 
-            { token: 'number', foreground: 'ff5500' } 
+            { token: 'string', foreground: 'ff8800' },
+            { token: 'number', foreground: 'ff5500' }
         ],
-        colors: { 
-            'editor.background': '#00000000', 
+        colors: {
+            'editor.background': '#00000000',
             'editorSuggestWidget.background': '#0a0a0ae6',
             'editorSuggestWidget.border': '#ff5500'
         }
@@ -150,17 +150,17 @@ require(['vs/editor/editor.main'], function () {
     editor.onDidChangeModelContent((e) => {
         let currLen = window.editor.getValue().length;
         if ((currLen - lastLength) > 5 && !e.isFlush) {
-            if(window.audioManager && window.audioManager.playSwordDraw) window.audioManager.playSwordDraw();
+            if (window.audioManager && window.audioManager.playSwordDraw) window.audioManager.playSwordDraw();
             flashOverlay.classList.add('flash-active');
             setTimeout(() => flashOverlay.classList.remove('flash-active'), 50);
         }
         lastLength = currLen;
-        
+
         // Auto-update history if editing a saved file
         if (currentCodeId) {
             let h = loadHistory();
             let idx = h.findIndex(x => x.id === currentCodeId);
-            if(idx > -1) {
+            if (idx > -1) {
                 h[idx].code = window.editor.getValue();
                 saveHistory(h);
             }
@@ -172,7 +172,7 @@ require(['vs/editor/editor.main'], function () {
         const markers = monaco.editor.getModelMarkers({ resource: editor.getModel().uri });
         const hasErrors = markers.some(m => m.severity === monaco.MarkerSeverity.Error);
         if (hasErrors) {
-            if(window.audioManager && window.audioManager.playDamageHit) window.audioManager.playDamageHit();
+            if (window.audioManager && window.audioManager.playDamageHit) window.audioManager.playDamageHit();
             const card = document.getElementById('editor-card');
             card.classList.add('error-glitch-line');
             setTimeout(() => card.classList.remove('error-glitch-line'), 400);
@@ -190,7 +190,7 @@ require(['vs/editor/editor.main'], function () {
 
         if (pos) {
             if (char === 'Enter') {
-                if(window.spawnLineHighlight) window.spawnLineHighlight(pos.top + 15, editorContainer.offsetWidth);
+                if (window.spawnLineHighlight) window.spawnLineHighlight(pos.top + 15, editorContainer.offsetWidth);
             } else if (window.spawnEffect) {
                 let color = 'rgba(255, 85, 0, 1)'; // Neon Orange Default
 
@@ -199,11 +199,11 @@ require(['vs/editor/editor.main'], function () {
                     if (/[0-9]/.test(charToDelete)) color = 'rgba(255, 26, 26, 1)'; // Neon Red
                     else if (/["']/.test(charToDelete)) color = 'rgba(255, 136, 0, 1)'; // Light Orange
                     else {
-                        const word = model.getWordAtPosition({lineNumber: editorPos.lineNumber, column: editorPos.column - 1});
+                        const word = model.getWordAtPosition({ lineNumber: editorPos.lineNumber, column: editorPos.column - 1 });
                         if (word) {
                             const keywords = ['int', 'return', 'void', 'class', 'public', 'private', 'if', 'else', 'for', 'while'];
-                            if (keywords.includes(word.word)) color = 'rgba(255, 26, 26, 1)'; 
-                            else color = 'rgba(224, 224, 224, 1)'; 
+                            if (keywords.includes(word.word)) color = 'rgba(255, 26, 26, 1)';
+                            else color = 'rgba(224, 224, 224, 1)';
                         }
                     }
                 }
@@ -216,13 +216,13 @@ require(['vs/editor/editor.main'], function () {
 // ---------------- SIDEBAR & HUD CONTROLS ----------------
 menuBtn.addEventListener('click', () => {
     document.body.classList.toggle('sidebar-open');
-    if(window.audioManager && window.audioManager.playPanelSlide) window.audioManager.playPanelSlide();
+    if (window.audioManager && window.audioManager.playPanelSlide) window.audioManager.playPanelSlide();
 });
 
 // HUD Logic
 notesBtn.addEventListener('click', () => {
     document.body.classList.toggle('notes-open');
-    if(document.body.classList.contains('notes-open')) {
+    if (document.body.classList.contains('notes-open')) {
         hudTextarea.focus();
     }
 });
@@ -236,7 +236,7 @@ hudTextarea.addEventListener('input', () => {
 saveNewBtn.addEventListener('click', () => {
     const code = window.editor.getValue();
     const name = prompt("Enter a name for this code:", "New Code");
-    if(name && name.trim() !== '') {
+    if (name && name.trim() !== '') {
         const h = loadHistory();
         const newId = Date.now().toString();
         const dateStr = new Date().toLocaleDateString() + ' ' + new Date().toLocaleTimeString();
@@ -245,22 +245,22 @@ saveNewBtn.addEventListener('click', () => {
         currentCodeId = newId;
         currentFileName.textContent = name.trim();
         renderHistory();
-        if(window.audioManager && window.audioManager.playSuccess) window.audioManager.playSuccess();
+        if (window.audioManager && window.audioManager.playSuccess) window.audioManager.playSuccess();
     }
 });
 
 
 // ---------------- REAL C++ EXECUTION ----------------
 startBtn.addEventListener('click', async () => {
-    if(window.audioManager && window.audioManager.playPanelSlide) window.audioManager.playPanelSlide();
+    if (window.audioManager && window.audioManager.playPanelSlide) window.audioManager.playPanelSlide();
     document.body.classList.add('run-mode');
     document.body.classList.remove('sidebar-open'); // Close sidebar if open
-    terminalOut.classList.remove('terminal-error'); 
+    terminalOut.classList.remove('terminal-error');
 
-    if(terminalTypingInterval) clearInterval(terminalTypingInterval);
+    if (terminalTypingInterval) clearInterval(terminalTypingInterval);
     terminalOut.innerHTML = '>>> COMPILING... PLEASE WAIT_';
-    
-    if(window.audioManager && window.audioManager.startProcessingLoop) window.audioManager.startProcessingLoop();
+
+    if (window.audioManager && window.audioManager.startProcessingLoop) window.audioManager.startProcessingLoop();
 
     const payload = {
         code: window.editor.getValue(),
@@ -281,7 +281,7 @@ startBtn.addEventListener('click', async () => {
         });
 
         const data = await response.json();
-        
+
         if (data.status === "0") {
             resultText = ">>> EXECUTION SUCCESSFUL:\n\n" + (data.program_message || data.program_output || "No output.");
             lastCompilationError = "";
@@ -299,22 +299,22 @@ startBtn.addEventListener('click', async () => {
         resultText = ">>> CONNECTION ERROR:\nFailed to reach execution server.\n" + err.message;
     }
 
-    if(window.audioManager && window.audioManager.stopProcessingLoop) window.audioManager.stopProcessingLoop();
+    if (window.audioManager && window.audioManager.stopProcessingLoop) window.audioManager.stopProcessingLoop();
 
     if (isError) {
         terminalOut.classList.add('terminal-error');
-        if(window.audioManager && window.audioManager.playErrorAlert) window.audioManager.playErrorAlert();
+        if (window.audioManager && window.audioManager.playErrorAlert) window.audioManager.playErrorAlert();
         triggerAIAnalysis(resultText);
     } else {
-        if(window.audioManager && window.audioManager.playSuccess) window.audioManager.playSuccess();
+        if (window.audioManager && window.audioManager.playSuccess) window.audioManager.playSuccess();
     }
 
     terminalOut.innerHTML = '';
     let i = 0;
     terminalTypingInterval = setInterval(() => {
-        if(i < resultText.length) {
+        if (i < resultText.length) {
             terminalOut.innerHTML += resultText.charAt(i);
-            if(i % 3 === 0 && window.audioManager && window.audioManager.playTelemetry && !isError) window.audioManager.playTelemetry();
+            if (i % 3 === 0 && window.audioManager && window.audioManager.playTelemetry && !isError) window.audioManager.playTelemetry();
             i++;
         } else {
             clearInterval(terminalTypingInterval);
@@ -323,9 +323,9 @@ startBtn.addEventListener('click', async () => {
 });
 
 backBtn.addEventListener('click', () => {
-    if(window.audioManager && window.audioManager.playPanelSlide) window.audioManager.playPanelSlide();
+    if (window.audioManager && window.audioManager.playPanelSlide) window.audioManager.playPanelSlide();
     document.body.classList.remove('run-mode');
-    if(terminalTypingInterval) clearInterval(terminalTypingInterval);
+    if (terminalTypingInterval) clearInterval(terminalTypingInterval);
 });
 
 // ---------------- CYBER ORB (FIXED & ACTIONS) ----------------
@@ -333,14 +333,14 @@ backBtn.addEventListener('click', () => {
 // Click toggles menu
 cyberOrb.addEventListener('click', (e) => {
     if (e.target.closest('.orb-btn') || e.target.closest('#orb-text')) return;
-    
+
     orbMenu.classList.toggle('show');
-    if(window.audioManager && window.audioManager.playRadioStatic) window.audioManager.playRadioStatic();
-    
-    if(!orbMenu.classList.contains('show')) {
+    if (window.audioManager && window.audioManager.playRadioStatic) window.audioManager.playRadioStatic();
+
+    if (!orbMenu.classList.contains('show')) {
         cyberOrb.classList.remove('error-state');
         orbText.classList.remove('show');
-        if(window.editor) {
+        if (window.editor) {
             currentErrorDecorations = window.editor.deltaDecorations(currentErrorDecorations, []);
         }
     }
@@ -353,7 +353,7 @@ orbAnalyzeBtn.addEventListener('click', () => {
         cyberOrb.classList.remove('error-state');
         return;
     }
-    
+
     triggerAIAnalysis(lastCompilationError);
 });
 
@@ -363,42 +363,42 @@ orbAutofixBtn.addEventListener('click', () => {
         showOrbMessage("لا يوجد خطأ محفوظ حالياً ليتم إصلاحه.");
         return;
     }
-    
+
     let code = window.editor.getValue();
     let fixed = false;
-    
+
     // Extract line number
     const lineMatch = lastCompilationError.match(/prog\.cc:(\d+):/);
-    if(lineMatch && lineMatch[1]) {
+    if (lineMatch && lineMatch[1]) {
         let lineNum = parseInt(lineMatch[1]);
-        
+
         if (lastCompilationError.includes("expected ';'")) {
             // Fix missing semicolon on previous line (usually)
             const lines = code.split("\n");
-            if(lineNum > 1 && !lines[lineNum-2].trim().endsWith(';') && !lines[lineNum-2].trim().endsWith('}') && !lines[lineNum-2].trim().endsWith('{')) {
-                lines[lineNum-2] += ";";
+            if (lineNum > 1 && !lines[lineNum - 2].trim().endsWith(';') && !lines[lineNum - 2].trim().endsWith('}') && !lines[lineNum - 2].trim().endsWith('{')) {
+                lines[lineNum - 2] += ";";
                 window.editor.setValue(lines.join("\n"));
                 fixed = true;
                 showOrbMessage("✨ تم إصلاح الخطأ: إضافة فاصلة منقوطة (;).");
             } else {
-                lines[lineNum-1] += ";";
+                lines[lineNum - 1] += ";";
                 window.editor.setValue(lines.join("\n"));
                 fixed = true;
                 showOrbMessage("✨ تم إضافة فاصلة منقوطة (;).");
             }
         }
     }
-    
-    if(!fixed && lastCompilationError.includes("No such file or directory")) {
+
+    if (!fixed && lastCompilationError.includes("No such file or directory")) {
         window.editor.setValue("#include <iostream>\n" + code);
         fixed = true;
         showOrbMessage("✨ تم إضافة مكتبة <iostream>.");
     }
-    
-    if(!fixed) {
+
+    if (!fixed) {
         showOrbMessage("عذراً، هذا الخطأ معقد ولا يمكنني إصلاحه تلقائياً.");
     } else {
-        if(window.audioManager && window.audioManager.playSuccess) window.audioManager.playSuccess();
+        if (window.audioManager && window.audioManager.playSuccess) window.audioManager.playSuccess();
         cyberOrb.classList.remove('error-state');
     }
 });
@@ -408,13 +408,13 @@ orbAutofixBtn.addEventListener('click', () => {
 function triggerAIAnalysis(errorText) {
     let explanation = "هناك خطأ برمجي (Syntax Error). راجع الرسالة الحمراء لمعرفة السطر المتضرر.";
     let lineNum = null;
-    
+
     // Extract line number e.g. prog.cc:5:10
     const lineMatch = errorText.match(/prog\.cc:(\d+):/);
-    if(lineMatch && lineMatch[1]) {
+    if (lineMatch && lineMatch[1]) {
         lineNum = parseInt(lineMatch[1]);
     }
-    
+
     if (errorText.includes("expected ';'")) explanation = "نسيت وضع فاصلة منقوطة (;) في نهاية السطر.";
     else if (errorText.includes("was not declared in this scope")) explanation = "استخدمت متغيراً ولم تقم بتعريفه، أو نسيت std::.";
     else if (errorText.includes("expected '}'")) explanation = "تأكد من إغلاق جميع الأقواس المعقوفة }.";
@@ -432,7 +432,7 @@ function triggerAIAnalysis(errorText) {
 }
 
 function highlightErrorLine(lineNum) {
-    if(!window.editor) return;
+    if (!window.editor) return;
     currentErrorDecorations = window.editor.deltaDecorations(currentErrorDecorations, [
         {
             range: new monaco.Range(lineNum, 1, lineNum, 1),
@@ -447,14 +447,14 @@ function highlightErrorLine(lineNum) {
 function showOrbMessage(msg) {
     orbMenu.classList.add('show');
     orbText.classList.add('show');
-    
-    if(window.audioManager && window.audioManager.playRadioStatic) window.audioManager.playRadioStatic();
-    
+
+    if (window.audioManager && window.audioManager.playRadioStatic) window.audioManager.playRadioStatic();
+
     const contentBox = document.getElementById('orb-text-content');
     contentBox.innerHTML = '';
     let i = 0;
     const typeInterval = setInterval(() => {
-        if(i < msg.length) {
+        if (i < msg.length) {
             contentBox.innerHTML += msg.charAt(i);
             i++;
         } else {
