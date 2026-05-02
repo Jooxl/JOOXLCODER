@@ -1,0 +1,129 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>JOOXL Coder - Cinematic Matrix Edition</title>
+    <link href="https://fonts.googleapis.com/css2?family=Fira+Code:wght@400;600&family=Inter:wght@400;700;900&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="style.css">
+</head>
+<body>
+    <!-- Cyber-Tech Grid Canvas -->
+    <canvas id="nebula-canvas"></canvas>
+    
+    <!-- Circuit Energy Canvas -->
+    <canvas id="circuit-canvas"></canvas>
+
+    <!-- Sword Flash Overlay -->
+    <div id="flash-overlay"></div>
+    
+    <!-- Cinematic Explosion Flash -->
+    <div id="cinematic-flash"></div>
+
+    <!-- JOOXL Branding -->
+    <div id="jooxl-branding">
+        <span class="brand-jooxl">JOOXL</span><span class="brand-coder">CODER</span>
+    </div>
+
+    <!-- UI Overlay Controls -->
+    <div id="top-controls">
+        <button id="menu-btn" title="Open History">
+            <div class="hamburger-line"></div>
+            <div class="hamburger-line"></div>
+            <div class="hamburger-line"></div>
+        </button>
+        <button id="notes-btn" title="Open Notes">
+            <svg viewBox="0 0 24 24"><path d="M3 17.25V21h3.75L17.81 9.94l-3.75-3.75L3 17.25zM20.71 7.04c.39-.39.39-1.02 0-1.41l-2.34-2.34a.9959.9959 0 00-1.41 0l-1.83 1.83 3.75 3.75 1.83-1.83z"/></svg>
+        </button>
+    </div>
+
+    <!-- Notes HUD Visor -->
+    <div id="notes-hud" class="glass-hud">
+        <textarea id="hud-textarea" spellcheck="false" placeholder="Enter logic notes or debug ideas here..."></textarea>
+    </div>
+
+    <!-- Sidebar (History/Snippets) -->
+    <div id="sidebar" class="glass-sidebar">
+        <div class="sidebar-header">
+            <h2>SAVED CODES</h2>
+            <button id="save-current-btn">+ SAVE NEW</button>
+        </div>
+        <div id="history-list">
+            <!-- Cards will be injected here dynamically -->
+        </div>
+    </div>
+
+    <!-- Cinematic Scene Container -->
+    <div id="scene-container">
+        
+        <!-- View 1: Glassmorphism Editor -->
+        <div id="editor-view" class="scene-layer">
+            <div class="glass-card spotlight-card" id="editor-card">
+                <div class="refraction-layer"></div>
+                <div class="glass-header">
+                    <span class="file-name" id="current-file-name">core_engine.cpp</span>
+                    <div class="header-controls">
+                        <span class="status-indicator"></span>
+                        <button id="start-btn">START / RUN <span class="arrow">➤</span></button>
+                    </div>
+                </div>
+                <div class="editor-wrapper">
+                    <div id="editor-container"></div>
+                    <!-- Effects Canvas Overlay for Keyboard combat -->
+                    <canvas id="effects-canvas"></canvas>
+                </div>
+            </div>
+        </div>
+
+        <!-- View 2: Matte Black Terminal Execution Screen -->
+        <div id="terminal-view" class="scene-layer">
+            <div class="terminal-card spotlight-card" id="terminal-card">
+                <div class="refraction-layer"></div>
+                <div class="terminal-header">
+                    <button id="back-btn"><span class="arrow">◄</span> REVERSE</button>
+                    <span class="terminal-title">EXECUTION MATRIX</span>
+                </div>
+                <div class="terminal-layout">
+                    <div class="terminal-left">
+                        <div class="input-header">STDIN INPUT (اختياري)</div>
+                        <textarea id="terminal-input" placeholder="Enter standard input (e.g., numbers, text for std::cin)..."></textarea>
+                    </div>
+                    <div class="terminal-right">
+                        <div id="terminal-output"></div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+    </div>
+
+    <!-- AI Assistant Orb (Fixed) -->
+    <div id="cyber-orb" class="cyber-orb">
+        <div class="orb-core"></div>
+        <div class="orb-ring"></div>
+        <div class="orb-ring-2"></div>
+        
+        <!-- Orb Pop-out Menu -->
+        <div id="orb-menu" class="orb-menu">
+            <button id="orb-analyze-btn" class="orb-btn" title="أين خطأي؟">❓</button>
+            <button id="orb-autofix-btn" class="orb-btn" title="إصلاح تلقائي">🪄</button>
+            <div id="orb-text" class="orb-text spotlight-card">
+                <div class="refraction-layer"></div>
+                <div id="orb-text-content"></div>
+            </div>
+        </div>
+    </div>
+    
+    <!-- Developer Credits -->
+    <a id="jooxl-credits" href="https://t.me/j0oxl" target="_blank">Developed by JOOXL</a>
+
+    <!-- Scripts -->
+    <script src="audio.js"></script>
+    <script src="nebula.js"></script>
+    <script src="effects.js"></script>
+    
+    <!-- Load Monaco Editor via RequireJS -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/require.js/2.3.6/require.min.js"></script>
+    <script src="main.js"></script>
+</body>
+</html>
