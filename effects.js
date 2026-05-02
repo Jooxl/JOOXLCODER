@@ -160,9 +160,32 @@ function spawnEffect(char, x, y, cColor = null) {
 }
 window.spawnEffect = spawnEffect;
 
+function drawVisualizer() {
+    if (window.audioManager && window.audioManager.analyser && window.audioManager.initialized) {
+        window.audioManager.analyser.getByteFrequencyData(window.audioManager.dataArray);
+        let sum = 0;
+        for (let i = 0; i < window.audioManager.dataArray.length; i++) {
+            sum += window.audioManager.dataArray[i];
+        }
+        let avg = sum / window.audioManager.dataArray.length;
+        
+        if (avg > 15 && Math.random() > 0.5) { 
+            const orb = document.getElementById('cyber-orb');
+            if (orb) {
+                const rect = orb.getBoundingClientRect();
+                const orbX = rect.left + rect.width / 2;
+                const orbY = rect.top + rect.height / 2;
+                activeEffects.push(new Shockwave(orbX, orbY, `rgba(255, 85, 0, ${(avg/255) * 0.8})`));
+            }
+        }
+    }
+}
+
 function animateAll() {
     effectsCtx.clearRect(0, 0, effectsCanvas.width, effectsCanvas.height);
     circuitCtx.clearRect(0, 0, circuitCanvas.width, circuitCanvas.height);
+    
+    drawVisualizer();
     
     for (let i = activeEffects.length - 1; i >= 0; i--) {
         activeEffects[i].update(); activeEffects[i].draw(effectsCtx);

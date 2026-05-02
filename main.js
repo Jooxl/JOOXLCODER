@@ -27,14 +27,25 @@ let currentCodeId = null;
 let lastCompilationError = "";
 let currentErrorDecorations = [];
 
-// Spotlight Mouse Tracking
-document.addEventListener('mousemove', (e) => {
-    document.querySelectorAll('.spotlight-card').forEach(card => {
+// Spotlight Mouse Tracking & 3D Tilt
+document.querySelectorAll('.spotlight-card').forEach(card => {
+    card.addEventListener('mousemove', (e) => {
         const rect = card.getBoundingClientRect();
         const x = e.clientX - rect.left;
         const y = e.clientY - rect.top;
         card.style.setProperty('--mouse-x', `${x}px`);
         card.style.setProperty('--mouse-y', `${y}px`);
+        
+        // 3D Tilt Effect
+        const centerX = rect.width / 2;
+        const centerY = rect.height / 2;
+        const rotateX = ((y - centerY) / centerY) * -4; // Max 4deg tilt
+        const rotateY = ((x - centerX) / centerX) * 4;
+        card.style.transform = `rotateX(${rotateX}deg) rotateY(${rotateY}deg)`;
+    });
+    
+    card.addEventListener('mouseleave', () => {
+        card.style.transform = 'rotateX(0deg) rotateY(0deg)';
     });
 });
 

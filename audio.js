@@ -1,6 +1,10 @@
 class AudioManager {
     constructor() {
         this.ctx = new (window.AudioContext || window.webkitAudioContext)();
+        this.analyser = this.ctx.createAnalyser();
+        this.analyser.fftSize = 64;
+        this.dataArray = new Uint8Array(this.analyser.frequencyBinCount);
+        this.analyser.connect(this.ctx.destination);
         this.initialized = false;
         this.buffers = {};
         this.initPromise = null;
@@ -222,7 +226,7 @@ class AudioManager {
         if (!this.initialized || !this.buffers[name]) return null;
         const source = this.ctx.createBufferSource();
         source.buffer = this.buffers[name];
-        source.connect(this.ctx.destination);
+        source.connect(this.analyser);
         source.start();
         return source;
     }
@@ -241,7 +245,7 @@ class AudioManager {
         this.processingSource = this.ctx.createBufferSource();
         this.processingSource.buffer = this.buffers['processing'];
         this.processingSource.loop = true;
-        this.processingSource.connect(this.ctx.destination);
+        this.processingSource.connect(this.analyser);
         this.processingSource.start();
     }
 
