@@ -12,6 +12,11 @@ function resizeCanvases() {
 window.addEventListener('resize', resizeCanvases);
 setTimeout(resizeCanvases, 100);
 
+function getPrimaryRGB() {
+    const rgb = getComputedStyle(document.body).getPropertyValue('--primary-rgb').trim();
+    return rgb || '255, 85, 0';
+}
+
 let activeEffects = [];
 let circuitLines = [];
 const MAX_PARTICLES = 300;
@@ -42,11 +47,11 @@ class LineHighlight {
     }
     draw(ctx) {
         // Semi-transparent Neon Orange overlay
-        ctx.fillStyle = `rgba(255, 85, 0, ${this.life * 0.3})`;
+        ctx.fillStyle = `rgba(${getPrimaryRGB()}, ${this.life * 0.3})`;
         ctx.fillRect(0, this.y, this.width, 24);
         
         // Neon Orange border lines
-        ctx.strokeStyle = `rgba(255, 85, 0, ${this.life})`;
+        ctx.strokeStyle = `rgba(${getPrimaryRGB()}, ${this.life})`;
         ctx.lineWidth = 1;
         ctx.beginPath();
         ctx.moveTo(0, this.y); ctx.lineTo(this.width, this.y);
@@ -61,8 +66,8 @@ window.spawnLineHighlight = function(y, width) {
 // ---------------- EXHAUSTIVE SYMBOL EFFECTS ----------------
 
 class Spark {
-    constructor(x, y, color = 'rgba(255, 85, 0, 1)', vx, vy) {
-        this.x = x; this.y = y; this.life = 1; this.color = color;
+    constructor(x, y, color = null, vx, vy) {
+        this.x = x; this.y = y; this.life = 1; this.color = color || `rgba(${getPrimaryRGB()}, 1)`;
         this.vx = vx || (Math.random() - 0.5) * 10; this.vy = vy || (Math.random() - 0.5) * 10; this.size = Math.random() * 2 + 1;
     }
     update() { this.life -= 0.05; this.x += this.vx; this.y += this.vy; this.vx *= 0.9; this.vy *= 0.9; }
@@ -123,7 +128,7 @@ function spawnEffect(char, x, y, cColor = null) {
     // Note: 'Enter' is now handled exclusively by spawnLineHighlight, so it's skipped here
     if (char === 'Enter') return; 
 
-    const color = cColor || 'rgba(255, 85, 0, 1)';
+    const color = cColor || `rgba(${getPrimaryRGB()}, 1)`;
 
     if (char === '@') activeEffects.push(new Spiral(x, y, color), new Spiral(x, y, color));
     else if (char === '#') activeEffects.push(new FracturingGrid(x, y, color));
@@ -175,7 +180,7 @@ function drawVisualizer() {
                 const rect = orb.getBoundingClientRect();
                 const orbX = rect.left + rect.width / 2;
                 const orbY = rect.top + rect.height / 2;
-                activeEffects.push(new Shockwave(orbX, orbY, `rgba(255, 85, 0, ${(avg/255) * 0.8})`));
+                activeEffects.push(new Shockwave(orbX, orbY, `rgba(${getPrimaryRGB()}, ${(avg/255) * 0.8})`));
             }
         }
     }

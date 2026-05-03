@@ -16,7 +16,11 @@ const editorContainer = document.getElementById('editor-container');
 const menuBtn = document.getElementById('menu-btn');
 const saveNewBtn = document.getElementById('save-current-btn');
 const historyList = document.getElementById('history-list');
-const currentFileName = document.getElementById('current-file-name');
+const editorTabs = document.getElementById('editor-tabs');
+
+// File System Logic
+let openFiles = []; // { id, name, model }
+let activeFileId = null;
 
 // HUD Elements
 const notesBtn = document.getElementById('notes-btn');
@@ -26,10 +30,10 @@ const volumeSlider = document.getElementById('volume-slider');
 const hudTextarea = document.getElementById('hud-textarea');
 const settingsModal = document.getElementById('settings-modal');
 const closeSettingsBtn = document.getElementById('close-settings-btn');
-const langToggle = document.getElementById('lang-toggle');
 const fontSizeSlider = document.getElementById('font-size-slider');
 const fontSizeDisplay = document.getElementById('font-size-display');
 const themeBtns = document.querySelectorAll('.theme-btn');
+const siteBtns = document.querySelectorAll('.site-btn');
 const wordWrapToggle = document.getElementById('word-wrap-toggle');
 const minimapToggle = document.getElementById('minimap-toggle');
 const ligaturesToggle = document.getElementById('ligatures-toggle');
@@ -101,10 +105,12 @@ function renderHistory() {
         card.addEventListener('click', (e) => {
             if (e.target.tagName === 'BUTTON') return; // Ignore if clicking action buttons
             if (window.editor) {
-                currentCodeId = null; // Disable auto-save temporarily
-                window.editor.setValue(item.code);
-                currentCodeId = item.id; // Re-enable auto-save with new ID
-                currentFileName.textContent = item.name;
+                currentCodeId = item.id;
+                if (window.createTab) {
+                    window.createTab(item.name, item.code, 'cpp');
+                } else {
+                    window.editor.setValue(item.code);
+                }
                 document.body.classList.remove('sidebar-open');
                 if (window.audioManager && window.audioManager.playSwordDraw) window.audioManager.playSwordDraw();
             }
@@ -131,7 +137,13 @@ function renderHistory() {
                 if (target) {
                     target.name = newName.trim();
                     saveHistory(h);
-                    if (currentCodeId === item.id) currentFileName.textContent = target.name;
+                    if (currentCodeId === item.id && activeFileId && openFiles) {
+                        let activeFile = openFiles.find(f => f.id === activeFileId);
+                        if (activeFile) {
+                            activeFile.name = target.name;
+                            if (window.renderTabs) window.renderTabs();
+                        }
+                    }
                     renderHistory();
                 }
             }
@@ -181,14 +193,81 @@ require(['vs/editor/editor.main'], function () {
     const defaultCode = `#include <iostream>\n\nint main() {\n    std::cout << "Hello JOOXL!" << std::endl;\n    return 0;\n}\n`;
 
     window.editor = monaco.editor.create(editorContainer, {
-        value: defaultCode, language: 'cpp', theme: 'cyber-tech',
+        theme: 'cyber-tech',
         fontFamily: "'Fira Code', monospace", fontSize: 18,
         minimap: { enabled: false }, suggestOnTriggerCharacters: true
     });
 
+    // Initialize File System Tabs
+    window.createTab = function(name, code, language) {
+        const id = 'file_' + Date.now() + Math.floor(Math.random() * 1000);
+        const model = monaco.editor.createModel(code, language);
+        openFiles.push({ id, name, model });
+        window.renderTabs();
+        window.switchTab(id);
+        return id;
+    }
+
+    window.switchTab = function(id) {
+        activeFileId = id;
+        const file = openFiles.find(f => f.id === id);
+        if (file) {
+            window.editor.setModel(file.model);
+            currentCodeId = null; // Detach history save until we link tab to history
+        }
+        window.renderTabs();
+    }
+
+    window.closeTab = function(id, e) {
+        if (e) e.stopPropagation();
+        const index = openFiles.findIndex(f => f.id === id);
+        if (index > -1) {
+            openFiles[index].model.dispose();
+            openFiles.splice(index, 1);
+            if (openFiles.length > 0) {
+                if (activeFileId === id) {
+                    window.switchTab(openFiles[Math.max(0, index - 1)].id);
+                } else {
+                    window.renderTabs();
+                }
+            } else {
+                window.editor.setModel(null);
+                activeFileId = null;
+                window.renderTabs();
+            }
+        }
+    }
+
+    window.renderTabs = function() {
+        if (!editorTabs) return;
+        editorTabs.innerHTML = '';
+        openFiles.forEach(file => {
+            const tab = document.createElement('div');
+            tab.className = `tab ${file.id === activeFileId ? 'active' : ''}`;
+            tab.onclick = () => window.switchTab(file.id);
+            tab.innerHTML = `
+                <span class="tab-icon">📄</span>
+                <span class="tab-name" title="${file.name}">${file.name}</span>
+                <button class="tab-close" onclick="window.closeTab('${file.id}', event)">&times;</button>
+            `;
+            editorTabs.appendChild(tab);
+        });
+
+        const addBtn = document.createElement('button');
+        addBtn.className = 'add-tab-btn';
+        addBtn.title = 'New File';
+        addBtn.innerHTML = '+';
+        addBtn.onclick = () => window.createTab('untitled.cpp', '// New file\n', 'cpp');
+        editorTabs.appendChild(addBtn);
+    };
+
+    // Create Initial Tabs
+    window.createTab('core_engine.cpp', defaultCode, 'cpp');
+    window.createTab('utils.h', '#pragma once\n\nvoid doSomething() {\n    // utils\n}', 'cpp');
+    window.switchTab(openFiles[0].id);
+
     // Sidebar Initialization
     renderHistory();
-    currentFileName.textContent = "untitled.cpp";
 
     let lastLength = window.editor.getValue().length;
 
@@ -321,13 +400,6 @@ closeSettingsBtn.addEventListener('click', () => {
 });
 
 // Settings Handlers
-langToggle.addEventListener('change', (e) => {
-    if(e.target.checked) {
-        document.body.classList.add('rtl');
-    } else {
-        document.body.classList.remove('rtl');
-    }
-});
 
 fontSizeSlider.addEventListener('input', (e) => {
     const val = e.target.value;
@@ -344,6 +416,51 @@ themeBtns.forEach(btn => {
         if(window.editor) {
             monaco.editor.setTheme(e.target.dataset.theme);
         }
+    });
+});
+
+// Site Theme Logic (Colors)
+const savedSiteTheme = localStorage.getItem('jooxl_site_theme') || 'orange';
+document.body.setAttribute('data-site-theme', savedSiteTheme);
+
+const colorBtns = document.querySelectorAll('.color-btn');
+colorBtns.forEach(btn => {
+    if (btn.dataset.site === savedSiteTheme) {
+        btn.classList.add('active');
+    } else {
+        btn.classList.remove('active');
+    }
+
+    btn.addEventListener('click', () => {
+        colorBtns.forEach(b => b.classList.remove('active'));
+        btn.classList.add('active');
+        const selectedTheme = btn.dataset.site;
+        document.body.setAttribute('data-site-theme', selectedTheme);
+        localStorage.setItem('jooxl_site_theme', selectedTheme);
+        
+        // Trigger resize event to force canvas redraws to pick up new colors quickly
+        window.dispatchEvent(new Event('resize'));
+    });
+});
+
+// Shape Logic (Background Patterns)
+const savedSiteShape = localStorage.getItem('jooxl_site_shape') || 'orange';
+document.body.setAttribute('data-site-shape', savedSiteShape);
+
+const shapeBtns = document.querySelectorAll('.shape-btn');
+shapeBtns.forEach(btn => {
+    if (btn.dataset.shape === savedSiteShape) {
+        btn.classList.add('active');
+    } else {
+        btn.classList.remove('active');
+    }
+
+    btn.addEventListener('click', () => {
+        shapeBtns.forEach(b => b.classList.remove('active'));
+        btn.classList.add('active');
+        const selectedShape = btn.dataset.shape;
+        document.body.setAttribute('data-site-shape', selectedShape);
+        localStorage.setItem('jooxl_site_shape', selectedShape);
     });
 });
 
@@ -391,8 +508,14 @@ hudTextarea.addEventListener('input', () => {
 });
 
 saveNewBtn.addEventListener('click', () => {
+    if (!window.editor.getModel()) return;
     const code = window.editor.getValue();
-    const name = prompt("Enter a name for this code:", "New Code");
+    let currentName = "New Code";
+    if (activeFileId && openFiles) {
+        let f = openFiles.find(x => x.id === activeFileId);
+        if (f) currentName = f.name;
+    }
+    const name = prompt("Enter a name for this code:", currentName);
     if (name && name.trim() !== '') {
         const h = loadHistory();
         const newId = Date.now().toString();
@@ -400,7 +523,14 @@ saveNewBtn.addEventListener('click', () => {
         h.unshift({ id: newId, name: name.trim(), code: code, date: dateStr });
         saveHistory(h);
         currentCodeId = newId;
-        currentFileName.textContent = name.trim();
+        
+        if (activeFileId && openFiles) {
+            let f = openFiles.find(x => x.id === activeFileId);
+            if (f) {
+                f.name = name.trim();
+                if (window.renderTabs) window.renderTabs();
+            }
+        }
         renderHistory();
         if (window.audioManager && window.audioManager.playSuccess) window.audioManager.playSuccess();
     }
