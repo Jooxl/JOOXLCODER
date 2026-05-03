@@ -20,7 +20,19 @@ const currentFileName = document.getElementById('current-file-name');
 
 // HUD Elements
 const notesBtn = document.getElementById('notes-btn');
+const settingsBtn = document.getElementById('settings-btn');
+const volumeBtn = document.getElementById('volume-btn');
+const volumeSlider = document.getElementById('volume-slider');
 const hudTextarea = document.getElementById('hud-textarea');
+const settingsModal = document.getElementById('settings-modal');
+const closeSettingsBtn = document.getElementById('close-settings-btn');
+const langToggle = document.getElementById('lang-toggle');
+const fontSizeSlider = document.getElementById('font-size-slider');
+const fontSizeDisplay = document.getElementById('font-size-display');
+const themeBtns = document.querySelectorAll('.theme-btn');
+const wordWrapToggle = document.getElementById('word-wrap-toggle');
+const minimapToggle = document.getElementById('minimap-toggle');
+const ligaturesToggle = document.getElementById('ligatures-toggle');
 
 let terminalTypingInterval = null;
 let currentCodeId = null;
@@ -28,7 +40,7 @@ let lastCompilationError = "";
 let currentErrorDecorations = [];
 
 // Spotlight Mouse Tracking & 3D Tilt
-document.querySelectorAll('.spotlight-card').forEach(card => {
+document.querySelectorAll('.spotlight-card, .spotlight-light-only').forEach(card => {
     card.addEventListener('mousemove', (e) => {
         const rect = card.getBoundingClientRect();
         const x = e.clientX - rect.left;
@@ -36,16 +48,20 @@ document.querySelectorAll('.spotlight-card').forEach(card => {
         card.style.setProperty('--mouse-x', `${x}px`);
         card.style.setProperty('--mouse-y', `${y}px`);
         
-        // 3D Tilt Effect
-        const centerX = rect.width / 2;
-        const centerY = rect.height / 2;
-        const rotateX = ((y - centerY) / centerY) * -4; // Max 4deg tilt
-        const rotateY = ((x - centerX) / centerX) * 4;
-        card.style.transform = `rotateX(${rotateX}deg) rotateY(${rotateY}deg)`;
+        if (card.classList.contains('spotlight-card')) {
+            // 3D Tilt Effect
+            const centerX = rect.width / 2;
+            const centerY = rect.height / 2;
+            const rotateX = ((y - centerY) / centerY) * -4; // Max 4deg tilt
+            const rotateY = ((x - centerX) / centerX) * 4;
+            card.style.transform = `rotateX(${rotateX}deg) rotateY(${rotateY}deg)`;
+        }
     });
     
     card.addEventListener('mouseleave', () => {
-        card.style.transform = 'rotateX(0deg) rotateY(0deg)';
+        if (card.classList.contains('spotlight-card')) {
+            card.style.transform = 'rotateX(0deg) rotateY(0deg)';
+        }
     });
 });
 
@@ -127,7 +143,7 @@ function renderHistory() {
 
 // ---------------- MONACO EDITOR SETUP ----------------
 require(['vs/editor/editor.main'], function () {
-    monaco.editor.defineTheme('cyber-tech', {
+    const cyberTechTheme = {
         base: 'vs-dark', inherit: true,
         rules: [
             { background: '00000000' },
@@ -141,6 +157,25 @@ require(['vs/editor/editor.main'], function () {
             'editorSuggestWidget.background': '#0a0a0ae6',
             'editorSuggestWidget.border': '#ff5500'
         }
+    };
+    monaco.editor.defineTheme('cyber-tech', cyberTechTheme);
+
+    monaco.editor.defineTheme('ocean-neon', {
+        base: 'vs-dark', inherit: true,
+        rules: [ { background: '00000000' }, { token: 'keyword', foreground: '00d8ff' }, { token: 'string', foreground: '00ffaa' } ],
+        colors: { 'editor.background': '#00000000', 'editorSuggestWidget.background': '#0a0a0ae6', 'editorSuggestWidget.border': '#00d8ff' }
+    });
+
+    monaco.editor.defineTheme('matrix-green', {
+        base: 'vs-dark', inherit: true,
+        rules: [ { background: '00000000' }, { token: 'keyword', foreground: '00ff00' }, { token: 'string', foreground: '00cc00' } ],
+        colors: { 'editor.background': '#00000000', 'editorSuggestWidget.background': '#0a0a0ae6', 'editorSuggestWidget.border': '#00ff00' }
+    });
+
+    monaco.editor.defineTheme('dark-plasma', {
+        base: 'vs-dark', inherit: true,
+        rules: [ { background: '00000000' }, { token: 'keyword', foreground: 'ff00ff' }, { token: 'string', foreground: 'aa00ff' } ],
+        colors: { 'editor.background': '#00000000', 'editorSuggestWidget.background': '#0a0a0ae6', 'editorSuggestWidget.border': '#ff00ff' }
     });
 
     const defaultCode = `#include <iostream>\n\nint main() {\n    std::cout << "Piston API Connected. Hello World!" << std::endl;\n    return 0;\n}\n`;
@@ -202,6 +237,11 @@ require(['vs/editor/editor.main'], function () {
         if (pos) {
             if (char === 'Enter') {
                 if (window.spawnLineHighlight) window.spawnLineHighlight(pos.top + 15, editorContainer.offsetWidth);
+                const card = document.getElementById('editor-card');
+                card.classList.remove('haptic-shake');
+                void card.offsetWidth; // trigger reflow
+                card.classList.add('haptic-shake');
+                setTimeout(() => card.classList.remove('haptic-shake'), 150);
             } else if (window.spawnEffect) {
                 let color = 'rgba(255, 85, 0, 1)'; // Neon Orange Default
 
@@ -225,16 +265,122 @@ require(['vs/editor/editor.main'], function () {
 });
 
 // ---------------- SIDEBAR & HUD CONTROLS ----------------
+function closeAllInterfaces(except) {
+    if (except !== 'sidebar') {
+        document.body.classList.remove('sidebar-open');
+    }
+    if (except !== 'notes') {
+        document.body.classList.remove('notes-open');
+    }
+    if (except !== 'settings') {
+        settingsModal.classList.remove('show');
+        document.body.classList.remove('settings-open');
+    }
+}
+
 menuBtn.addEventListener('click', () => {
-    document.body.classList.toggle('sidebar-open');
+    const isOpening = !document.body.classList.contains('sidebar-open');
+    closeAllInterfaces('sidebar');
+    if (isOpening) {
+        document.body.classList.add('sidebar-open');
+    } else {
+        document.body.classList.remove('sidebar-open');
+    }
     if (window.audioManager && window.audioManager.playPanelSlide) window.audioManager.playPanelSlide();
 });
 
 // HUD Logic
 notesBtn.addEventListener('click', () => {
-    document.body.classList.toggle('notes-open');
-    if (document.body.classList.contains('notes-open')) {
+    const isOpening = !document.body.classList.contains('notes-open');
+    closeAllInterfaces('notes');
+    if (isOpening) {
+        document.body.classList.add('notes-open');
         hudTextarea.focus();
+    } else {
+        document.body.classList.remove('notes-open');
+    }
+});
+
+settingsBtn.addEventListener('click', () => {
+    const isOpening = !settingsModal.classList.contains('show');
+    closeAllInterfaces('settings');
+    if (isOpening) {
+        settingsModal.classList.add('show');
+        document.body.classList.add('settings-open');
+    } else {
+        settingsModal.classList.remove('show');
+        document.body.classList.remove('settings-open');
+    }
+    if (window.audioManager && window.audioManager.playPanelSlide) window.audioManager.playPanelSlide();
+});
+
+closeSettingsBtn.addEventListener('click', () => {
+    settingsModal.classList.remove('show');
+    document.body.classList.remove('settings-open');
+    if (window.audioManager && window.audioManager.playPanelSlide) window.audioManager.playPanelSlide();
+});
+
+// Settings Handlers
+langToggle.addEventListener('change', (e) => {
+    if(e.target.checked) {
+        document.body.classList.add('rtl');
+    } else {
+        document.body.classList.remove('rtl');
+    }
+});
+
+fontSizeSlider.addEventListener('input', (e) => {
+    const val = e.target.value;
+    fontSizeDisplay.textContent = val + 'px';
+    if(window.editor) {
+        window.editor.updateOptions({ fontSize: parseInt(val) });
+    }
+});
+
+themeBtns.forEach(btn => {
+    btn.addEventListener('click', (e) => {
+        themeBtns.forEach(b => b.classList.remove('active'));
+        e.target.classList.add('active');
+        if(window.editor) {
+            monaco.editor.setTheme(e.target.dataset.theme);
+        }
+    });
+});
+
+if(wordWrapToggle) {
+    wordWrapToggle.addEventListener('change', (e) => {
+        if(window.editor) {
+            window.editor.updateOptions({ wordWrap: e.target.checked ? 'on' : 'off' });
+        }
+    });
+}
+
+if(minimapToggle) {
+    minimapToggle.addEventListener('change', (e) => {
+        if(window.editor) {
+            window.editor.updateOptions({ minimap: { enabled: e.target.checked } });
+        }
+    });
+}
+
+if(ligaturesToggle) {
+    ligaturesToggle.addEventListener('change', (e) => {
+        if(window.editor) {
+            window.editor.updateOptions({ fontLigatures: e.target.checked });
+        }
+    });
+}
+
+let isMuted = false;
+volumeBtn.addEventListener('click', () => {
+    isMuted = !isMuted;
+    volumeBtn.classList.remove('volume-btn-anim');
+    void volumeBtn.offsetWidth; // trigger reflow
+    volumeBtn.classList.add('volume-btn-anim');
+    volumeBtn.classList.toggle('muted', isMuted);
+    
+    if(window.audioManager) {
+        window.audioManager.setVolume(isMuted ? 0 : 1);
     }
 });
 
@@ -267,6 +413,9 @@ startBtn.addEventListener('click', async () => {
     document.body.classList.add('run-mode');
     document.body.classList.remove('sidebar-open'); // Close sidebar if open
     terminalOut.classList.remove('terminal-error');
+
+    const indicator = document.querySelector('.status-indicator');
+    if(indicator) indicator.className = 'status-indicator compiling';
 
     if (terminalTypingInterval) clearInterval(terminalTypingInterval);
     terminalOut.innerHTML = '>>> COMPILING... PLEASE WAIT_';
@@ -313,10 +462,12 @@ startBtn.addEventListener('click', async () => {
     if (window.audioManager && window.audioManager.stopProcessingLoop) window.audioManager.stopProcessingLoop();
 
     if (isError) {
+        if(indicator) indicator.className = 'status-indicator error';
         terminalOut.classList.add('terminal-error');
         if (window.audioManager && window.audioManager.playErrorAlert) window.audioManager.playErrorAlert();
         triggerAIAnalysis(resultText);
     } else {
+        if(indicator) indicator.className = 'status-indicator success';
         if (window.audioManager && window.audioManager.playSuccess) window.audioManager.playSuccess();
     }
 

@@ -1,14 +1,17 @@
 class AudioManager {
     constructor() {
         this.ctx = new (window.AudioContext || window.webkitAudioContext)();
+        this.masterGain = this.ctx.createGain();
+        this.masterGain.connect(this.ctx.destination);
         this.analyser = this.ctx.createAnalyser();
         this.analyser.fftSize = 64;
         this.dataArray = new Uint8Array(this.analyser.frequencyBinCount);
-        this.analyser.connect(this.ctx.destination);
+        this.analyser.connect(this.masterGain);
         this.initialized = false;
         this.buffers = {};
         this.initPromise = null;
         this.processingSource = null;
+        this.ambientSource = null;
     }
 
     async init() {
@@ -254,6 +257,38 @@ class AudioManager {
             this.processingSource.stop();
             this.processingSource = null;
         }
+    }
+
+    setVolume(val) {
+        if(this.masterGain) {
+            this.masterGain.gain.setValueAtTime(val, this.ctx.currentTime);
+        }
+    }
+
+    playAmbient() {
+        if(this.ambientSource) return;
+        const osc1 = this.ctx.createOscillator();
+        const osc2 = this.ctx.createOscillator();
+        const lfo = this.ctx.createOscillator();
+        const filter = this.ctx.createBiquadFilter();
+        const gain = this.ctx.createGain();
+
+        osc1.type = 'sawtooth'; osc1.frequency.value = 55; // Deep hum
+        osc2.type = 'square'; osc2.frequency.value = 55.5; // Detuned
+        
+        filter.type = 'lowpass'; filter.frequency.value = 200;
+        lfo.type = 'sine'; lfo.frequency.value = 0.1;
+        
+        const lfoGain = this.ctx.createGain(); lfoGain.gain.value = 50;
+        lfo.connect(lfoGain); lfoGain.connect(filter.frequency);
+
+        gain.gain.value = 0.05; // Quiet drone
+        
+        osc1.connect(filter); osc2.connect(filter); filter.connect(gain);
+        gain.connect(this.masterGain);
+
+        osc1.start(); osc2.start(); lfo.start();
+        this.ambientSource = { osc1, osc2, lfo };
     }
 
     playPanelSlide() { this.playSound('panel-slide'); }
