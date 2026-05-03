@@ -438,8 +438,8 @@ colorBtns.forEach(btn => {
         document.body.setAttribute('data-site-theme', selectedTheme);
         localStorage.setItem('jooxl_site_theme', selectedTheme);
         
-        // Trigger resize event to force canvas redraws to pick up new colors quickly
-        window.dispatchEvent(new Event('resize'));
+        // Dispatch themeChanged event instead of full resize to avoid layout thrashing
+        window.dispatchEvent(new Event('themeChanged'));
     });
 });
 
@@ -461,6 +461,9 @@ shapeBtns.forEach(btn => {
         const selectedShape = btn.dataset.shape;
         document.body.setAttribute('data-site-shape', selectedShape);
         localStorage.setItem('jooxl_site_shape', selectedShape);
+        
+        // Notify canvases of the shape change
+        window.dispatchEvent(new Event('themeChanged'));
     });
 });
 

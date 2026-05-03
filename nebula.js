@@ -13,13 +13,20 @@ function resize() {
 window.addEventListener('resize', resize);
 resize();
 
-function getPrimaryRGB() {
-    return getComputedStyle(document.body).getPropertyValue('--primary-rgb').trim() || '255, 85, 0';
+let currentPrimaryRGB = '255, 85, 0';
+let currentPrimaryHex = '#ff5500';
+let currentShapeTheme = 'orange';
+
+function updateThemeColors() {
+    currentPrimaryRGB = getComputedStyle(document.body).getPropertyValue('--primary-rgb').trim() || '255, 85, 0';
+    currentPrimaryHex = getComputedStyle(document.body).getPropertyValue('--primary-hex').trim() || '#ff5500';
+    currentShapeTheme = document.body.getAttribute('data-site-shape') || 'orange';
 }
 
-function getPrimaryHex() {
-    return getComputedStyle(document.body).getPropertyValue('--primary-hex').trim() || '#ff5500';
-}
+// Update colors initially
+setTimeout(updateThemeColors, 100);
+
+window.addEventListener('themeChanged', updateThemeColors);
 
 class Particle {
     constructor() {
@@ -40,12 +47,12 @@ class Particle {
     draw() {
         ctx.beginPath();
         ctx.arc(this.x, this.y, this.radius, 0, Math.PI * 2);
-        ctx.fillStyle = `rgba(${getPrimaryRGB()}, 0.8)`;
+        ctx.fillStyle = `rgba(${currentPrimaryRGB}, 0.8)`;
         ctx.fill();
         
         // Add subtle glow
         ctx.shadowBlur = 10;
-        ctx.shadowColor = getPrimaryHex();
+        ctx.shadowColor = currentPrimaryHex;
     }
 }
 
@@ -66,7 +73,7 @@ function animate() {
             const dy = particles[i].y - particles[j].y;
             const distance = Math.sqrt(dx * dx + dy * dy);
             
-            const theme = document.body.getAttribute('data-site-shape') || 'orange';
+            const theme = currentShapeTheme;
             let currentMaxDist = maxDistance;
             
             if (theme === 'purple') currentMaxDist = maxDistance * 1.5;
@@ -75,7 +82,7 @@ function animate() {
 
             if (distance < currentMaxDist) {
                 ctx.beginPath();
-                ctx.strokeStyle = `rgba(${getPrimaryRGB()}, ${1 - distance/currentMaxDist})`;
+                ctx.strokeStyle = `rgba(${currentPrimaryRGB}, ${1 - distance/currentMaxDist})`;
                 
                 if (theme === 'purple') {
                     ctx.lineWidth = 0.6;
