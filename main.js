@@ -178,7 +178,7 @@ require(['vs/editor/editor.main'], function () {
         colors: { 'editor.background': '#00000000', 'editorSuggestWidget.background': '#0a0a0ae6', 'editorSuggestWidget.border': '#ff00ff' }
     });
 
-    const defaultCode = `#include <iostream>\n\nint main() {\n    std::cout << "Piston API Connected. Hello World!" << std::endl;\n    return 0;\n}\n`;
+    const defaultCode = `#include <iostream>\n\nint main() {\n    std::cout << "Hello JOOXL!" << std::endl;\n    return 0;\n}\n`;
 
     window.editor = monaco.editor.create(editorContainer, {
         value: defaultCode, language: 'cpp', theme: 'cyber-tech',
