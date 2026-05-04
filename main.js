@@ -391,6 +391,27 @@ notesBtn.addEventListener('click', () => {
     }
 });
 
+const aiBtn = document.getElementById('ai-btn');
+const aiPopup = document.getElementById('ai-popup');
+let aiPopupTimeout;
+
+if (aiBtn && aiPopup) {
+    aiBtn.addEventListener('click', () => {
+        if (window.audioManager && window.audioManager.playModernPop) {
+            window.audioManager.playModernPop();
+        } else if (window.audioManager && window.audioManager.playErrorAlert) {
+            window.audioManager.playErrorAlert();
+        }
+        
+        clearTimeout(aiPopupTimeout);
+        aiPopup.classList.add('show');
+        
+        aiPopupTimeout = setTimeout(() => {
+            aiPopup.classList.remove('show');
+        }, 2000);
+    });
+}
+
 settingsBtn.addEventListener('click', () => {
     const isOpening = !settingsModal.classList.contains('show');
     closeAllInterfaces('settings');
