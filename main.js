@@ -414,7 +414,10 @@ themeBtns.forEach(btn => {
         themeBtns.forEach(b => b.classList.remove('active'));
         e.target.classList.add('active');
         if(window.editor) {
-            monaco.editor.setTheme(e.target.dataset.theme);
+            // setTimeout prevents main thread blocking and lag
+            setTimeout(() => {
+                monaco.editor.setTheme(e.target.dataset.theme);
+            }, 50);
         }
     });
 });
@@ -435,11 +438,24 @@ colorBtns.forEach(btn => {
         colorBtns.forEach(b => b.classList.remove('active'));
         btn.classList.add('active');
         const selectedTheme = btn.dataset.site;
-        document.body.setAttribute('data-site-theme', selectedTheme);
-        localStorage.setItem('jooxl_site_theme', selectedTheme);
         
-        // Dispatch themeChanged event instead of full resize to avoid layout thrashing
-        window.dispatchEvent(new Event('themeChanged'));
+        // Show smooth transition overlay
+        const overlay = document.getElementById('theme-transition-overlay');
+        if (overlay) overlay.classList.add('active');
+
+        // Delay heavy operations to fix UI freeze
+        setTimeout(() => {
+            document.body.setAttribute('data-site-theme', selectedTheme);
+            localStorage.setItem('jooxl_site_theme', selectedTheme);
+            
+            // Dispatch themeChanged event
+            window.dispatchEvent(new Event('themeChanged'));
+
+            // Fade out overlay
+            if (overlay) {
+                setTimeout(() => overlay.classList.remove('active'), 50);
+            }
+        }, 50);
     });
 });
 
@@ -459,11 +475,19 @@ shapeBtns.forEach(btn => {
         shapeBtns.forEach(b => b.classList.remove('active'));
         btn.classList.add('active');
         const selectedShape = btn.dataset.shape;
-        document.body.setAttribute('data-site-shape', selectedShape);
-        localStorage.setItem('jooxl_site_shape', selectedShape);
         
-        // Notify canvases of the shape change
-        window.dispatchEvent(new Event('themeChanged'));
+        const overlay = document.getElementById('theme-transition-overlay');
+        if (overlay) overlay.classList.add('active');
+
+        setTimeout(() => {
+            document.body.setAttribute('data-site-shape', selectedShape);
+            localStorage.setItem('jooxl_site_shape', selectedShape);
+            window.dispatchEvent(new Event('themeChanged'));
+
+            if (overlay) {
+                setTimeout(() => overlay.classList.remove('active'), 50);
+            }
+        }, 50);
     });
 });
 
