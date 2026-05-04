@@ -3,14 +3,29 @@ const effectsCtx = effectsCanvas.getContext('2d');
 const circuitCanvas = document.getElementById('circuit-canvas');
 const circuitCtx = circuitCanvas.getContext('2d');
 
+let resizeTimeout;
 function resizeCanvases() {
-    effectsCanvas.width = effectsCanvas.offsetWidth;
-    effectsCanvas.height = effectsCanvas.offsetHeight;
-    circuitCanvas.width = window.innerWidth;
-    circuitCanvas.height = window.innerHeight;
+    clearTimeout(resizeTimeout);
+    resizeTimeout = setTimeout(() => {
+        effectsCanvas.width = effectsCanvas.offsetWidth;
+        effectsCanvas.height = effectsCanvas.offsetHeight;
+        circuitCanvas.width = window.innerWidth;
+        circuitCanvas.height = window.innerHeight;
+        updateCyberOrbCache(); // Update orb position on resize
+    }, 100);
 }
 window.addEventListener('resize', resizeCanvases);
 setTimeout(resizeCanvases, 100);
+
+let cyberOrbCache = null;
+let cyberOrbRectCache = null;
+function updateCyberOrbCache() {
+    cyberOrbCache = document.getElementById('cyber-orb');
+    if (cyberOrbCache) {
+        cyberOrbRectCache = cyberOrbCache.getBoundingClientRect();
+    }
+}
+setTimeout(updateCyberOrbCache, 150);
 
 let currentPrimaryRGB = '255, 85, 0';
 
@@ -178,11 +193,9 @@ function drawVisualizer() {
         let avg = sum / window.audioManager.dataArray.length;
         
         if (avg > 15 && Math.random() > 0.5) { 
-            const orb = document.getElementById('cyber-orb');
-            if (orb) {
-                const rect = orb.getBoundingClientRect();
-                const orbX = rect.left + rect.width / 2;
-                const orbY = rect.top + rect.height / 2;
+            if (cyberOrbCache && cyberOrbRectCache) {
+                const orbX = cyberOrbRectCache.left + cyberOrbRectCache.width / 2;
+                const orbY = cyberOrbRectCache.top + cyberOrbRectCache.height / 2;
                 activeEffects.push(new Shockwave(orbX, orbY, `rgba(${currentPrimaryRGB}, ${(avg/255) * 0.8})`));
             }
         }

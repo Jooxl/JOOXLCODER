@@ -85,6 +85,7 @@ body::after {
   pointer-events: none;
   border-radius: 50%;
   transition: background 0.5s ease;
+  will-change: transform;
 }
 
 body::before {
@@ -153,6 +154,7 @@ body::after {
   filter: blur(80px);
   opacity: 0.4;
   animation: float-shape 20s infinite ease-in-out alternate;
+  will-change: transform;
 }
 
 .shape-1 {
@@ -244,13 +246,12 @@ body::after {
   left: 0;
   width: 100vw;
   height: 100vh;
-  background: radial-gradient(circle at 50% 50%, rgba(var(--primary-rgb), 0.1) 0%, transparent 80%);
+  background: rgba(var(--primary-rgb), 0.15);
   z-index: 9999;
   pointer-events: none;
   opacity: 0;
   transition: opacity 0.5s ease-out;
-  backdrop-filter: blur(20px);
-  -webkit-backdrop-filter: blur(20px);
+  will-change: opacity;
 }
 
 #theme-transition-overlay.active {

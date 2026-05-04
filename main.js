@@ -44,21 +44,28 @@ let lastCompilationError = "";
 let currentErrorDecorations = [];
 
 // Spotlight Mouse Tracking & 3D Tilt
+let isTicking = false;
 document.querySelectorAll('.spotlight-card, .spotlight-light-only').forEach(card => {
     card.addEventListener('mousemove', (e) => {
-        const rect = card.getBoundingClientRect();
-        const x = e.clientX - rect.left;
-        const y = e.clientY - rect.top;
-        card.style.setProperty('--mouse-x', `${x}px`);
-        card.style.setProperty('--mouse-y', `${y}px`);
-        
-        if (card.classList.contains('spotlight-card')) {
-            // 3D Tilt Effect
-            const centerX = rect.width / 2;
-            const centerY = rect.height / 2;
-            const rotateX = ((y - centerY) / centerY) * -4; // Max 4deg tilt
-            const rotateY = ((x - centerX) / centerX) * 4;
-            card.style.transform = `rotateX(${rotateX}deg) rotateY(${rotateY}deg)`;
+        if (!isTicking) {
+            window.requestAnimationFrame(() => {
+                const rect = card.getBoundingClientRect();
+                const x = e.clientX - rect.left;
+                const y = e.clientY - rect.top;
+                card.style.setProperty('--mouse-x', `${x}px`);
+                card.style.setProperty('--mouse-y', `${y}px`);
+                
+                if (card.classList.contains('spotlight-card')) {
+                    // 3D Tilt Effect
+                    const centerX = rect.width / 2;
+                    const centerY = rect.height / 2;
+                    const rotateX = ((y - centerY) / centerY) * -4; // Max 4deg tilt
+                    const rotateY = ((x - centerX) / centerX) * 4;
+                    card.style.transform = `rotateX(${rotateX}deg) rotateY(${rotateY}deg)`;
+                }
+                isTicking = false;
+            });
+            isTicking = true;
         }
     });
     
@@ -271,6 +278,7 @@ require(['vs/editor/editor.main'], function () {
 
     let lastLength = window.editor.getValue().length;
 
+    let historySaveTimeout = null;
     // Autocomplete Sword Flash
     editor.onDidChangeModelContent((e) => {
         let currLen = window.editor.getValue().length;
@@ -281,14 +289,17 @@ require(['vs/editor/editor.main'], function () {
         }
         lastLength = currLen;
 
-        // Auto-update history if editing a saved file
+        // Auto-update history if editing a saved file (Debounced to fix typing lag)
         if (currentCodeId) {
-            let h = loadHistory();
-            let idx = h.findIndex(x => x.id === currentCodeId);
-            if (idx > -1) {
-                h[idx].code = window.editor.getValue();
-                saveHistory(h);
-            }
+            clearTimeout(historySaveTimeout);
+            historySaveTimeout = setTimeout(() => {
+                let h = loadHistory();
+                let idx = h.findIndex(x => x.id === currentCodeId);
+                if (idx > -1) {
+                    h[idx].code = window.editor.getValue();
+                    saveHistory(h);
+                }
+            }, 1000);
         }
     });
 
@@ -528,10 +539,14 @@ volumeBtn.addEventListener('click', () => {
     }
 });
 
-// Save HUD Notes to LocalStorage automatically
+// Save HUD Notes to LocalStorage automatically (Debounced to fix typing lag)
+let notesSaveTimeout = null;
 hudTextarea.value = localStorage.getItem('jooxl_hud_notes') || '';
 hudTextarea.addEventListener('input', () => {
-    localStorage.setItem('jooxl_hud_notes', hudTextarea.value);
+    clearTimeout(notesSaveTimeout);
+    notesSaveTimeout = setTimeout(() => {
+        localStorage.setItem('jooxl_hud_notes', hudTextarea.value);
+    }, 1000);
 });
 
 saveNewBtn.addEventListener('click', () => {

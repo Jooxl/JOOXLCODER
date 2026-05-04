@@ -63,6 +63,13 @@ for (let i = 0; i < particleCount; i++) {
 function animate() {
     ctx.clearRect(0, 0, w, h);
 
+    const theme = currentShapeTheme;
+    let currentMaxDist = maxDistance;
+    if (theme === 'purple') currentMaxDist = maxDistance * 1.5;
+    else if (theme === 'cyan') currentMaxDist = maxDistance * 1.2;
+    else if (theme === 'pink') currentMaxDist = maxDistance * 1.3;
+    const maxDistSq = currentMaxDist * currentMaxDist;
+
     for (let i = 0; i < particles.length; i++) {
         particles[i].update();
         particles[i].draw();
@@ -71,16 +78,10 @@ function animate() {
         for (let j = i + 1; j < particles.length; j++) {
             const dx = particles[i].x - particles[j].x;
             const dy = particles[i].y - particles[j].y;
-            const distance = Math.sqrt(dx * dx + dy * dy);
-            
-            const theme = currentShapeTheme;
-            let currentMaxDist = maxDistance;
-            
-            if (theme === 'purple') currentMaxDist = maxDistance * 1.5;
-            else if (theme === 'cyan') currentMaxDist = maxDistance * 1.2;
-            else if (theme === 'pink') currentMaxDist = maxDistance * 1.3;
+            const distSq = dx * dx + dy * dy;
 
-            if (distance < currentMaxDist) {
+            if (distSq < maxDistSq) {
+                const distance = Math.sqrt(distSq);
                 ctx.beginPath();
                 ctx.strokeStyle = `rgba(${currentPrimaryRGB}, ${1 - distance/currentMaxDist})`;
                 
