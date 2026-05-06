@@ -26,14 +26,12 @@ let activeFileId = null;
 const notesBtn = document.getElementById('notes-btn');
 const settingsBtn = document.getElementById('settings-btn');
 const volumeBtn = document.getElementById('volume-btn');
-const volumeSlider = document.getElementById('volume-slider');
 const hudTextarea = document.getElementById('hud-textarea');
 const settingsModal = document.getElementById('settings-modal');
 const closeSettingsBtn = document.getElementById('close-settings-btn');
 const fontSizeSlider = document.getElementById('font-size-slider');
 const fontSizeDisplay = document.getElementById('font-size-display');
 const themeBtns = document.querySelectorAll('.theme-btn');
-const siteBtns = document.querySelectorAll('.site-btn');
 const wordWrapToggle = document.getElementById('word-wrap-toggle');
 const minimapToggle = document.getElementById('minimap-toggle');
 const ligaturesToggle = document.getElementById('ligatures-toggle');
@@ -470,24 +468,15 @@ colorBtns.forEach(btn => {
         colorBtns.forEach(b => b.classList.remove('active'));
         btn.classList.add('active');
         const selectedTheme = btn.dataset.site;
-        
-        // Show smooth transition overlay
-        const overlay = document.getElementById('theme-transition-overlay');
-        if (overlay) overlay.classList.add('active');
 
-        // Delay heavy operations to fix UI freeze
-        setTimeout(() => {
-            document.body.setAttribute('data-site-theme', selectedTheme);
-            localStorage.setItem('jooxl_site_theme', selectedTheme);
-            
-            // Dispatch themeChanged event
+        // Apply theme change immediately to CSS (no overlay blocking)
+        document.body.setAttribute('data-site-theme', selectedTheme);
+        localStorage.setItem('jooxl_site_theme', selectedTheme);
+
+        // Dispatch themeChanged on next frame so canvas effects update after CSS is applied
+        requestAnimationFrame(() => {
             window.dispatchEvent(new Event('themeChanged'));
-
-            // Fade out overlay
-            if (overlay) {
-                setTimeout(() => overlay.classList.remove('active'), 50);
-            }
-        }, 50);
+        });
     });
 });
 
@@ -507,19 +496,14 @@ shapeBtns.forEach(btn => {
         shapeBtns.forEach(b => b.classList.remove('active'));
         btn.classList.add('active');
         const selectedShape = btn.dataset.shape;
-        
-        const overlay = document.getElementById('theme-transition-overlay');
-        if (overlay) overlay.classList.add('active');
 
-        setTimeout(() => {
-            document.body.setAttribute('data-site-shape', selectedShape);
-            localStorage.setItem('jooxl_site_shape', selectedShape);
+        document.body.setAttribute('data-site-shape', selectedShape);
+        localStorage.setItem('jooxl_site_shape', selectedShape);
+
+        // Notify canvas on next frame after DOM update
+        requestAnimationFrame(() => {
             window.dispatchEvent(new Event('themeChanged'));
-
-            if (overlay) {
-                setTimeout(() => overlay.classList.remove('active'), 50);
-            }
-        }, 50);
+        });
     });
 });
 

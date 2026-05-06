@@ -297,6 +297,7 @@ class AudioManager {
     playErrorAlert() { this.playSound('error-alert'); }
     playTelemetry() { this.playSound('telemetry'); }
     playRadioStatic() { this.playSound('modern-pop'); }
+    playModernPop() { this.playSound('modern-pop'); }
     playSuccess() { this.playSound('success'); }
     playHUDOpen() { this.playSound('hydraulic-slide'); }
     playHUDClose() { this.playSound('mech-lock'); }

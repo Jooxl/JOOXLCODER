@@ -3,12 +3,18 @@ const ctx = canvas.getContext('2d');
 
 let w, h;
 let particles = [];
-const particleCount = 60; // Sleek and minimal
+const particleCount = 55; // Slightly reduced for smoother perf
 const maxDistance = 150;
+let animFrameId = null;
 
 function resize() {
     w = canvas.width = window.innerWidth;
     h = canvas.height = window.innerHeight;
+    // Reposition particles that are now out of bounds
+    particles.forEach(p => {
+        if (p.x > w) p.x = Math.random() * w;
+        if (p.y > h) p.y = Math.random() * h;
+    });
 }
 window.addEventListener('resize', resize);
 resize();
@@ -16,16 +22,22 @@ resize();
 let currentPrimaryRGB = '255, 85, 0';
 let currentPrimaryHex = '#ff5500';
 let currentShapeTheme = 'orange';
+let themeUpdateScheduled = false;
 
 function updateThemeColors() {
-    currentPrimaryRGB = getComputedStyle(document.body).getPropertyValue('--primary-rgb').trim() || '255, 85, 0';
-    currentPrimaryHex = getComputedStyle(document.body).getPropertyValue('--primary-hex').trim() || '#ff5500';
-    currentShapeTheme = document.body.getAttribute('data-site-shape') || 'orange';
+    if (themeUpdateScheduled) return;
+    themeUpdateScheduled = true;
+    // Use rAF to batch theme update with next paint cycle - prevents jank on iPad
+    requestAnimationFrame(() => {
+        currentPrimaryRGB = getComputedStyle(document.body).getPropertyValue('--primary-rgb').trim() || '255, 85, 0';
+        currentPrimaryHex = getComputedStyle(document.body).getPropertyValue('--primary-hex').trim() || '#ff5500';
+        currentShapeTheme = document.body.getAttribute('data-site-shape') || 'orange';
+        themeUpdateScheduled = false;
+    });
 }
 
-// Update colors initially
-setTimeout(updateThemeColors, 100);
-
+// Update colors initially after layout
+setTimeout(updateThemeColors, 150);
 window.addEventListener('themeChanged', updateThemeColors);
 
 class Particle {
@@ -39,8 +51,6 @@ class Particle {
     update() {
         this.x += this.vx;
         this.y += this.vy;
-        
-        // Bounce off edges
         if (this.x < 0 || this.x > w) this.vx *= -1;
         if (this.y < 0 || this.y > h) this.vy *= -1;
     }
@@ -49,10 +59,6 @@ class Particle {
         ctx.arc(this.x, this.y, this.radius, 0, Math.PI * 2);
         ctx.fillStyle = `rgba(${currentPrimaryRGB}, 0.8)`;
         ctx.fill();
-        
-        // Add subtle glow
-        ctx.shadowBlur = 10;
-        ctx.shadowColor = currentPrimaryHex;
     }
 }
 
@@ -70,11 +76,21 @@ function animate() {
     else if (theme === 'pink') currentMaxDist = maxDistance * 1.3;
     const maxDistSq = currentMaxDist * currentMaxDist;
 
+    // Set shadow once for glow effect - not per particle
+    ctx.save();
+    ctx.shadowBlur = 8;
+    ctx.shadowColor = currentPrimaryHex;
+
     for (let i = 0; i < particles.length; i++) {
         particles[i].update();
         particles[i].draw();
-        
-        // Connect particles
+    }
+
+    // Disable shadow for line drawing (performance)
+    ctx.shadowBlur = 0;
+    ctx.shadowColor = 'transparent';
+
+    for (let i = 0; i < particles.length; i++) {
         for (let j = i + 1; j < particles.length; j++) {
             const dx = particles[i].x - particles[j].x;
             const dy = particles[i].y - particles[j].y;
@@ -82,12 +98,12 @@ function animate() {
 
             if (distSq < maxDistSq) {
                 const distance = Math.sqrt(distSq);
+                const alpha = 1 - distance / currentMaxDist;
                 ctx.beginPath();
-                ctx.strokeStyle = `rgba(${currentPrimaryRGB}, ${1 - distance/currentMaxDist})`;
-                
+                ctx.strokeStyle = `rgba(${currentPrimaryRGB}, ${alpha})`;
+
                 if (theme === 'purple') {
                     ctx.lineWidth = 0.6;
-                    // Fractal-like curve connection using smooth coordinates
                     const midX = (particles[i].x + particles[j].x) / 2;
                     const midY = (particles[i].y + particles[j].y) / 2;
                     const offset = distance * 0.35;
@@ -96,13 +112,11 @@ function animate() {
                     ctx.moveTo(particles[i].x, particles[i].y);
                     ctx.quadraticCurveTo(cpX, cpY, particles[j].x, particles[j].y);
                 } else if (theme === 'cyan') {
-                    // Circuit-board right angles
                     ctx.lineWidth = 0.8;
                     ctx.moveTo(particles[i].x, particles[i].y);
                     ctx.lineTo(particles[i].x, particles[j].y);
                     ctx.lineTo(particles[j].x, particles[j].y);
                 } else if (theme === 'green') {
-                    // Double parallel tech lines
                     ctx.lineWidth = 0.5;
                     ctx.moveTo(particles[i].x, particles[i].y);
                     ctx.lineTo(particles[j].x, particles[j].y);
@@ -111,7 +125,6 @@ function animate() {
                     ctx.moveTo(particles[i].x + offsetX, particles[i].y + offsetY);
                     ctx.lineTo(particles[j].x + offsetX, particles[j].y + offsetY);
                 } else if (theme === 'pink') {
-                    // Smooth fluid waves
                     ctx.lineWidth = 0.8;
                     const midX = (particles[i].x + particles[j].x) / 2;
                     const midY = (particles[i].y + particles[j].y) / 2;
@@ -123,7 +136,6 @@ function animate() {
                     ctx.moveTo(particles[i].x, particles[i].y);
                     ctx.bezierCurveTo(cp1X, cp1Y, cp2X, cp2Y, particles[j].x, particles[j].y);
                 } else if (theme === 'yellow') {
-                    // Sharp zig-zags (lightning)
                     ctx.lineWidth = 0.9;
                     ctx.moveTo(particles[i].x, particles[i].y);
                     const midX = (particles[i].x + particles[j].x) / 2;
@@ -134,7 +146,6 @@ function animate() {
                     ctx.lineTo(zigX, zigY);
                     ctx.lineTo(particles[j].x, particles[j].y);
                 } else {
-                    // Default Orange: Straight lines
                     ctx.lineWidth = 1;
                     ctx.moveTo(particles[i].x, particles[i].y);
                     ctx.lineTo(particles[j].x, particles[j].y);
@@ -143,8 +154,9 @@ function animate() {
             }
         }
     }
-    
-    requestAnimationFrame(animate);
+
+    ctx.restore();
+    animFrameId = requestAnimationFrame(animate);
 }
 
 animate();
