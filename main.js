@@ -330,8 +330,10 @@ require(['vs/editor/editor.main'], function () {
                 void card.offsetWidth; // trigger reflow
                 card.classList.add('haptic-shake');
                 setTimeout(() => card.classList.remove('haptic-shake'), 150);
-            } else if (window.spawnEffect) {
-                let color = 'rgba(255, 85, 0, 1)'; // Neon Orange Default
+            }
+            
+            if (window.spawnEffect) {
+                let color = null; // Let effects.js use the active theme color by default
 
                 if (char === 'Backspace' && editorPos.column > 1) {
                     let charToDelete = model.getValueInRange({ startLineNumber: editorPos.lineNumber, startColumn: editorPos.column - 1, endLineNumber: editorPos.lineNumber, endColumn: editorPos.column });
@@ -600,36 +602,59 @@ startBtn.addEventListener('click', async () => {
     if (window.audioManager && window.audioManager.startProcessingLoop) window.audioManager.startProcessingLoop();
 
     const payload = {
-        code: window.editor.getValue(),
-        compiler: "gcc-head",
-        stdin: terminalInput.value,
-        save: false
+        source: window.editor.getValue(),
+        options: {
+            userArguments: "-O3",
+            compilerOptions: {
+                executorRequest: true
+            },
+            filters: {
+                execute: true
+            },
+            executeParameters: {
+                stdin: terminalInput.value
+            }
+        }
     };
 
     let resultText = "";
     let isError = false;
 
+    // Helper to strip ANSI escape codes
+    const stripAnsi = (str) => {
+        if (!str) return "";
+        return str.replace(/[\u001b\u009b][[()#;?]*(?:[0-9]{1,4}(?:;[0-9]{0,4})*)?[0-9A-ORZcf-nqry=><]/g, '');
+    };
+
     try {
         await new Promise(r => setTimeout(r, 1000));
-        const response = await fetch("https://wandbox.org/api/compile.json", {
+        const response = await fetch("https://godbolt.org/api/compiler/g142/compile", {
             method: "POST",
-            headers: { "Content-Type": "application/json" },
+            headers: {
+                "Content-Type": "application/json",
+                "Accept": "application/json"
+            },
             body: JSON.stringify(payload)
         });
 
         const data = await response.json();
 
-        if (data.status === "0") {
-            resultText = ">>> EXECUTION SUCCESSFUL:\n\n" + (data.program_message || data.program_output || "No output.");
+        if (data.code === 0 && data.didExecute) {
+            const programOut = data.stdout ? data.stdout.map(x => x.text).join('\n') : '';
+            const programErr = data.stderr ? data.stderr.map(x => x.text).join('\n') : '';
+            let outMsg = programOut;
+            if (programErr) {
+                outMsg += "\n\n>>> RUNTIME ERROR/STDERR:\n" + programErr;
+            }
+            resultText = ">>> EXECUTION SUCCESSFUL:\n\n" + (outMsg || "No output.");
             lastCompilationError = "";
-        } else if (data.status !== undefined) {
-            isError = true;
-            resultText = ">>> COMPILATION OR RUNTIME ERROR:\n\n" + (data.compiler_error || data.program_error || "Unknown Error");
-            lastCompilationError = data.compiler_error || data.program_error || "";
         } else {
             isError = true;
-            resultText = ">>> API ERROR: Unexpected response format.\n" + JSON.stringify(data, null, 2);
-            lastCompilationError = resultText;
+            const buildErrors = data.buildResult && data.buildResult.stderr ? data.buildResult.stderr.map(x => x.text).join('\n') : '';
+            const generalErrors = data.stderr ? data.stderr.map(x => x.text).join('\n') : '';
+            const compError = stripAnsi(buildErrors || generalErrors || "Unknown Compilation Error");
+            resultText = ">>> COMPILATION OR RUNTIME ERROR:\n\n" + compError;
+            lastCompilationError = compError;
         }
     } catch (err) {
         isError = true;
@@ -707,7 +732,7 @@ orbAutofixBtn.addEventListener('click', () => {
     let fixed = false;
 
     // Extract line number
-    const lineMatch = lastCompilationError.match(/prog\.cc:(\d+):/);
+    const lineMatch = lastCompilationError.match(/(?:prog\.cc|<source>):(\d+):/);
     if (lineMatch && lineMatch[1]) {
         let lineNum = parseInt(lineMatch[1]);
 
@@ -748,8 +773,8 @@ function triggerAIAnalysis(errorText) {
     let explanation = "هناك خطأ برمجي (Syntax Error). راجع الرسالة الحمراء لمعرفة السطر المتضرر.";
     let lineNum = null;
 
-    // Extract line number e.g. prog.cc:5:10
-    const lineMatch = errorText.match(/prog\.cc:(\d+):/);
+    // Extract line number e.g. prog.cc:5:10 or <source>:5:10
+    const lineMatch = errorText.match(/(?:prog\.cc|<source>):(\d+):/);
     if (lineMatch && lineMatch[1]) {
         lineNum = parseInt(lineMatch[1]);
     }

@@ -36,8 +36,7 @@ function scheduleCacheUpdate() {
 }
 setTimeout(scheduleCacheUpdate, 200);
 
-// Theme color – updated lazily on next animation frame
-let currentPrimaryRGB = '255, 85, 0';
+// Theme color – updated lazily on next animation frame (uses global declared in nebula.js)
 let themeUpdatePending = false;
 
 function scheduleThemeUpdate() {
@@ -101,12 +100,15 @@ class Spark {
         this.color = color || `rgba(${currentPrimaryRGB}, 1)`;
         this.vx = vx || (Math.random() - 0.5) * 10;
         this.vy = vy || (Math.random() - 0.5) * 10;
-        this.size = Math.random() * 2 + 1;
+        this.size = Math.random() * 3 + 2; // Increased size slightly
     }
     update() { this.life -= 0.05; this.x += this.vx; this.y += this.vy; this.vx *= 0.9; this.vy *= 0.9; }
     draw(ctx) {
         ctx.fillStyle = this.color.replace(/[\d.]+\)$/, `${this.life})`);
+        ctx.shadowColor = this.color;
+        ctx.shadowBlur = 6;
         ctx.beginPath(); ctx.arc(this.x, this.y, this.size, 0, Math.PI * 2); ctx.fill();
+        ctx.shadowBlur = 0;
     }
 }
 
@@ -115,7 +117,11 @@ class Shockwave {
     update() { this.life -= 0.05; this.radius += 5; }
     draw(ctx) {
         ctx.strokeStyle = this.color.replace(/[\d.]+\)$/, `${this.life})`);
-        ctx.lineWidth = 3; ctx.beginPath(); ctx.arc(this.x, this.y, this.radius, 0, Math.PI * 2); ctx.stroke();
+        ctx.lineWidth = 2;
+        ctx.shadowColor = this.color;
+        ctx.shadowBlur = 8;
+        ctx.beginPath(); ctx.arc(this.x, this.y, this.radius, 0, Math.PI * 2); ctx.stroke();
+        ctx.shadowBlur = 0;
     }
 }
 
@@ -174,16 +180,70 @@ class PolygonExplosion {
     }
 }
 
+// ---------------- NEW: FLOATING CHARACTER EFFECT ----------------
+class FloatingChar {
+    constructor(x, y, char, color) {
+        this.x = x;
+        this.y = y - 5;
+        this.life = 1.0;
+        this.color = color || `rgba(${currentPrimaryRGB}, 1)`;
+        
+        // Map special keys to clean display symbols
+        if (!char) {
+            this.char = '';
+        } else if (char === ' ') {
+            this.char = '·';
+        } else if (char === 'Backspace') {
+            this.char = '←';
+        } else if (char === 'Tab') {
+            this.char = '⇥';
+        } else if (char === 'Enter') {
+            this.char = '↵';
+        } else if (typeof char === 'string' && char.length > 1) {
+            // Ignore other helper/modifier keys like Shift, Control, Alt, ArrowLeft, etc.
+            this.char = '';
+        } else {
+            this.char = char;
+        }
+
+        this.vy = -1.2 - Math.random() * 0.8;
+        this.vx = (Math.random() - 0.5) * 1.5;
+        this.size = 14 + Math.random() * 6;
+    }
+    update() {
+        this.life -= 0.03;
+        this.y += this.vy;
+        this.x += this.vx;
+    }
+    draw(ctx) {
+        if (!this.char) return;
+        ctx.fillStyle = this.color.replace(/[\d.]+\)$/, `${this.life * 0.85})`);
+        ctx.shadowColor = this.color;
+        ctx.shadowBlur = 10;
+        ctx.font = `bold ${this.size}px 'Fira Code', monospace`;
+        ctx.fillText(this.char, this.x - (this.size / 4), this.y);
+        ctx.shadowBlur = 0;
+    }
+}
+
 // ---------------- DISPATCHER ----------------
 
 function spawnCircuit(startX, startY, endX, endY) { circuitLines.push(new CircuitLine(startX, startY, endX, endY)); }
 window.spawnCircuit = spawnCircuit;
 
 function spawnEffect(char, x, y, cColor = null) {
-    if (char === 'Enter') return;
-
     const color = cColor || `rgba(${currentPrimaryRGB}, 1)`;
 
+    // Spawn floating character for any key (except helper key groups that shouldn't show text)
+    const floatEffect = new FloatingChar(x, y, char, color);
+    if (floatEffect.char !== '') {
+        activeEffects.push(floatEffect);
+    }
+
+    // Spawn an impact ripple (Shockwave) at the cursor position for all keypresses
+    activeEffects.push(new Shockwave(x, y, color));
+
+    // Spawn specific weapon/ambient key visual effects
     if (char === '@') activeEffects.push(new Spiral(x, y, color), new Spiral(x, y, color));
     else if (char === '#') activeEffects.push(new FracturingGrid(x, y, color));
     else if (char === '$') activeEffects.push(new Shockwave(x, y, 'rgba(0, 255, 0, 1)'), new Spark(x, y, 'rgba(0,255,0,1)', 0, -5));
@@ -210,7 +270,14 @@ function spawnEffect(char, x, y, cColor = null) {
     else if (char === '\\') activeEffects.push(new Spark(x, y, color, 10, 10), new Spark(x, y, color, -10, -10));
     else if (char === '/') activeEffects.push(new Spark(x, y, color, 10, -10), new Spark(x, y, color, -10, 10));
     else if (char === 'Backspace') { for (let i = 0; i < 6; i++) { let a = Math.random() * Math.PI * 2; activeEffects.push(new Spark(x + Math.cos(a) * 20, y + Math.sin(a) * 20, color, -Math.cos(a) * 4, -Math.sin(a) * 4)); } }
-    else { for (let i = 0; i < 3; i++) activeEffects.push(new Spark(x, y, color)); }
+    else {
+        // Normal characters: letters, numbers, spaces, etc.
+        // Spawn a beautiful burst of glowing sparks (6 to 9 sparks)
+        const numSparks = 6 + Math.floor(Math.random() * 4);
+        for (let i = 0; i < numSparks; i++) {
+            activeEffects.push(new Spark(x, y, color));
+        }
+    }
 
     // Hard cap to prevent memory/perf issues
     if (activeEffects.length > MAX_PARTICLES) {
